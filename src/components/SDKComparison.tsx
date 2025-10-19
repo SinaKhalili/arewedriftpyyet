@@ -77,6 +77,12 @@ export default function SDKComparison({
   const [expandedSnippets, setExpandedSnippets] = useState<Set<string>>(
     new Set()
   );
+  const [hideCommonMethods, setHideCommonMethods] = useState<Set<string>>(
+    new Set()
+  );
+  const [sortByLength, setSortByLength] = useState<Set<string>>(new Set());
+  const [showLongestMethod, setShowLongestMethod] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   const tsColumnRef = useRef<HTMLDivElement>(null);
   const pythonColumnRef = useRef<HTMLDivElement>(null);
@@ -338,6 +344,76 @@ export default function SDKComparison({
     });
   };
 
+  const toggleHideCommonMethods = (classKey: string) => {
+    setHideCommonMethods((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(classKey)) {
+        newSet.delete(classKey);
+      } else {
+        newSet.add(classKey);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSortByLength = (classKey: string) => {
+    setSortByLength((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(classKey)) {
+        newSet.delete(classKey);
+      } else {
+        newSet.add(classKey);
+      }
+      return newSet;
+    });
+  };
+
+  const findLongestMethods = () => {
+    const methodLengths: Array<{
+      method: Method;
+      className: string;
+      sdkName: string;
+      length: number;
+    }> = [];
+
+    // Check all TypeScript classes
+    tsData.classes.forEach((cls) => {
+      cls.methods.forEach((method) => {
+        if (method.name !== "constructor") {
+          const length =
+            (method.endLine || method.line || 1) -
+            (method.startLine || method.line || 1) +
+            1;
+          methodLengths.push({
+            method,
+            className: cls.name,
+            sdkName: "ts",
+            length,
+          });
+        }
+      });
+    });
+
+    // Check all Python classes
+    pythonData.classes.forEach((cls) => {
+      cls.methods.forEach((method) => {
+        const length =
+          (method.endLine || method.line || 1) -
+          (method.startLine || method.line || 1) +
+          1;
+        methodLengths.push({
+          method,
+          className: cls.name,
+          sdkName: "python",
+          length,
+        });
+      });
+    });
+
+    // Sort by length (descending) and return top 15
+    return methodLengths.sort((a, b) => b.length - a.length).slice(0, 15);
+  };
+
   const getExpandedSnippetContent = (key: string) => {
     const snippet = codeSnippets.get(key);
     if (!snippet || !snippet.fullContent) return snippet?.content || "";
@@ -369,8 +445,21 @@ export default function SDKComparison({
         ? tsClassesMap.get(sdkClass.name)
         : pythonClassesMap.get(sdkClass.name);
 
+    const classKey = `${sdkName}-${sdkClass.name}`;
+    const shouldHideCommon = hideCommonMethods.has(classKey);
+    const shouldSortByLength = sortByLength.has(classKey);
+
     if (!otherClass) {
-      // If no corresponding class, just sort alphabetically
+      // If no corresponding class, just sort by preference
+      if (shouldSortByLength) {
+        return methods.sort((a, b) => {
+          const lengthA =
+            (a.endLine || a.line || 1) - (a.startLine || a.line || 1) + 1;
+          const lengthB =
+            (b.endLine || b.line || 1) - (b.startLine || b.line || 1) + 1;
+          return lengthB - lengthA; // Descending by length
+        });
+      }
       return methods.sort((a, b) => a.name.localeCompare(b.name));
     }
 
@@ -392,12 +481,44 @@ export default function SDKComparison({
       }
     });
 
-    // Sort each group alphabetically
-    sharedMethods.sort((a, b) => a.name.localeCompare(b.name));
-    nonSharedMethods.sort((a, b) => a.name.localeCompare(b.name));
+    // Apply filtering and sorting
+    let filteredMethods: Method[];
 
-    // Return shared methods first, then non-shared methods
-    return [...sharedMethods, ...nonSharedMethods];
+    if (shouldHideCommon) {
+      // Only show non-shared methods
+      filteredMethods = [...nonSharedMethods];
+    } else {
+      // Show all methods
+      filteredMethods = [...sharedMethods, ...nonSharedMethods];
+    }
+
+    // Apply sorting
+    if (shouldSortByLength) {
+      filteredMethods.sort((a, b) => {
+        const lengthA =
+          (a.endLine || a.line || 1) - (a.startLine || a.line || 1) + 1;
+        const lengthB =
+          (b.endLine || b.line || 1) - (b.startLine || b.line || 1) + 1;
+        return lengthB - lengthA; // Descending by length
+      });
+    } else {
+      // Alphabetical sorting
+      if (shouldHideCommon) {
+        // Only non-shared methods, sort alphabetically
+        filteredMethods.sort((a, b) => a.name.localeCompare(b.name));
+      } else {
+        // Shared methods first, then non-shared, both alphabetically sorted
+        const sharedFiltered = [...sharedMethods];
+        const nonSharedFiltered = [...nonSharedMethods];
+
+        sharedFiltered.sort((a, b) => a.name.localeCompare(b.name));
+        nonSharedFiltered.sort((a, b) => a.name.localeCompare(b.name));
+
+        filteredMethods = [...sharedFiltered, ...nonSharedFiltered];
+      }
+    }
+
+    return filteredMethods;
   };
 
   const getNormalizedMethodName = (
@@ -748,6 +869,40 @@ export default function SDKComparison({
 
             {isExpanded && (
               <div className="px-2 pb-2 space-y-0.5">
+                <div className="flex gap-2 mb-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleHideCommonMethods(`${sdkName}-${className}`);
+                    }}
+                    className={`border border-t-[#FFFFFF] border-l-[#FFFFFF] border-r-[#808080] border-b-[#808080] px-2 py-1 text-xs text-black hover:bg-[#D0D0D0] active:border-t-[#808080] active:border-l-[#808080] active:border-r-[#FFFFFF] active:border-b-[#FFFFFF] ${
+                      hideCommonMethods.has(`${sdkName}-${className}`)
+                        ? "bg-[#D0D0D0]"
+                        : "bg-[#C0C0C0]"
+                    }`}
+                    style={{ fontFamily: "MS Sans Serif, sans-serif" }}
+                  >
+                    {hideCommonMethods.has(`${sdkName}-${className}`)
+                      ? "Show Common"
+                      : "Hide Common"}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSortByLength(`${sdkName}-${className}`);
+                    }}
+                    className={`border border-t-[#FFFFFF] border-l-[#FFFFFF] border-r-[#808080] border-b-[#808080] px-2 py-1 text-xs text-black hover:bg-[#D0D0D0] active:border-t-[#808080] active:border-l-[#808080] active:border-r-[#FFFFFF] active:border-b-[#FFFFFF] ${
+                      sortByLength.has(`${sdkName}-${className}`)
+                        ? "bg-[#D0D0D0]"
+                        : "bg-[#C0C0C0]"
+                    }`}
+                    style={{ fontFamily: "MS Sans Serif, sans-serif" }}
+                  >
+                    {sortByLength.has(`${sdkName}-${className}`)
+                      ? "Sort A-Z"
+                      : "Sort by Length"}
+                  </button>
+                </div>
                 {getSortedMethods(sdkClass, sdkName).map((method) => {
                   const tsClass = tsClassesMap.get(className);
                   const pythonClass = pythonClassesMap.get(className);
@@ -792,7 +947,14 @@ export default function SDKComparison({
                             sdkName
                           )}
                         </div>
-                        <span className="flex-1">{method.name}</span>
+                        <span className="flex-1">
+                          {method.name}
+                          {method.startLine && method.endLine && (
+                            <span className="text-gray-500 ml-1">
+                              ({method.endLine - method.startLine + 1} lines)
+                            </span>
+                          )}
+                        </span>
                         <div className="flex flex-col items-end space-y-0.5">
                           <div className="flex items-center space-x-1">
                             <a
@@ -1116,6 +1278,88 @@ export default function SDKComparison({
             <span className="text-xs text-black">Hide empty classes</span>
           </label>
         </div>
+
+        <div className="flex justify-center mb-2">
+          <button
+            onClick={() => setShowLeaderboard(!showLeaderboard)}
+            className="bg-[#C0C0C0] border border-t-[#FFFFFF] border-l-[#FFFFFF] border-r-[#808080] border-b-[#808080] px-3 py-1 text-xs text-black hover:bg-[#D0D0D0] active:border-t-[#808080] active:border-l-[#808080] active:border-r-[#FFFFFF] active:border-b-[#FFFFFF]"
+            style={{ fontFamily: "MS Sans Serif, sans-serif" }}
+          >
+            🏆 Method Length Leaderboard
+          </button>
+        </div>
+
+        {showLeaderboard && (
+          <div className="mb-4 bg-white border-2 border-gray-400 shadow-lg">
+            <div className="bg-[#C0C0C0] border-b border-gray-400 p-2">
+              <h3
+                className="text-sm font-bold text-black"
+                style={{ fontFamily: "MS Sans Serif, sans-serif" }}
+              >
+                🏆 Top 15 Longest Methods
+              </h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-[#E0E0E0] border-b border-gray-300">
+                    <th className="border-r border-gray-300 px-2 py-1 text-left font-bold">
+                      Rank
+                    </th>
+                    <th className="border-r border-gray-300 px-2 py-1 text-left font-bold">
+                      Method
+                    </th>
+                    <th className="border-r border-gray-300 px-2 py-1 text-left font-bold">
+                      Class
+                    </th>
+                    <th className="border-r border-gray-300 px-2 py-1 text-left font-bold">
+                      SDK
+                    </th>
+                    <th className="px-2 py-1 text-left font-bold">Lines</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {findLongestMethods().map((item, index) => (
+                    <tr
+                      key={`${item.sdkName}-${item.className}-${item.method.name}`}
+                      className="border-b border-gray-200 hover:bg-gray-50"
+                    >
+                      <td className="border-r border-gray-300 px-2 py-1 font-bold text-center">
+                        {index === 0
+                          ? "🥇"
+                          : index === 1
+                          ? "🥈"
+                          : index === 2
+                          ? "🥉"
+                          : `#${index + 1}`}
+                      </td>
+                      <td className="border-r border-gray-300 px-2 py-1 font-mono text-xs">
+                        {item.method.name}
+                      </td>
+                      <td className="border-r border-gray-300 px-2 py-1">
+                        {item.className}
+                      </td>
+                      <td className="border-r border-gray-300 px-2 py-1">
+                        <span
+                          className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${
+                            item.sdkName === "ts"
+                              ? "bg-blue-100 text-blue-800"
+                              : "bg-green-100 text-green-800"
+                          }`}
+                        >
+                          {item.sdkName === "ts" ? "TypeScript" : "Python"}
+                        </span>
+                      </td>
+                      <td className="px-2 py-1 font-bold text-center">
+                        {item.length}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-col sm:flex-row sm:flex-wrap gap-1 sm:gap-2 items-start sm:items-center text-xs text-gray-600">
           <span className="font-medium">Legend:</span>
