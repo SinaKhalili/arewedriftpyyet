@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import Prism from "prismjs";
 import "prismjs/components/prism-typescript";
 import "prismjs/components/prism-python";
@@ -76,25 +76,21 @@ export default function SDKComparison({
   const pythonColumnRef = useRef<HTMLDivElement>(null);
   const isScrollingRef = useRef(false);
 
-  // Create maps for efficient lookup
   const tsClassesMap = new Map(tsData.classes.map((cls) => [cls.name, cls]));
   const pythonClassesMap = new Map(
     pythonData.classes.map((cls) => [cls.name, cls])
   );
 
-  // Get all unique class names and sort them
   const allClassNames = new Set([
     ...tsData.classes.map((cls) => cls.name),
     ...pythonData.classes.map((cls) => cls.name),
   ]);
   const sortedClassNames = Array.from(allClassNames).sort();
 
-  // Filter classes based on current filters
   const filteredClassNames = sortedClassNames.filter((className) => {
     const tsClass = tsClassesMap.get(className);
     const pythonClass = pythonClassesMap.get(className);
 
-    // Filter out empty classes if hideEmptyClasses is enabled
     if (hideEmptyClasses) {
       const tsMethodCount = tsClass?.methods.length || 0;
       const pythonMethodCount = pythonClass?.methods.length || 0;
@@ -105,11 +101,11 @@ export default function SDKComparison({
 
     let matchesToggle = false;
     if (tsClass && pythonClass && showCommon) {
-      matchesToggle = true; // Common class
+      matchesToggle = true;
     } else if (tsClass && !pythonClass && showTsOnly) {
-      matchesToggle = true; // TypeScript only
+      matchesToggle = true;
     } else if (!tsClass && pythonClass && showPythonOnly) {
-      matchesToggle = true; // Python only
+      matchesToggle = true;
     }
 
     const text = `${className} ${
@@ -121,7 +117,6 @@ export default function SDKComparison({
     return matchesToggle && matchesSearch;
   });
 
-  // Synchronized scrolling
   const handleScroll = (
     sourceRef: React.RefObject<HTMLDivElement>,
     targetRef: React.RefObject<HTMLDivElement>
@@ -135,7 +130,6 @@ export default function SDKComparison({
     }
   };
 
-  // Toggle class expansion
   const toggleClass = (className: string) => {
     setExpandedClasses((prev) => {
       const newSet = new Set(prev);
@@ -148,23 +142,18 @@ export default function SDKComparison({
     });
   };
 
-  // Helper function to get clean file path for GitHub URLs
   const getCleanFilePath = (filePath: string, sdkName: string): string => {
     if (sdkName === "ts") {
-      // Remove 'protocol-v2/sdk/src/' prefix for TypeScript files
       return filePath.replace(/^protocol-v2\/sdk\/src\//, "");
     } else {
-      // Remove 'driftpy/' prefix for Python files
       return filePath.replace(/^driftpy\//, "");
     }
   };
 
-  // Convert snake_case to camelCase for comparison
   const toCamelCase = (str: string): string => {
     return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
   };
 
-  // Highlight code using Prism.js
   const highlightCode = (code: string, language: string): string => {
     try {
       if (language === "typescript") {
@@ -179,7 +168,6 @@ export default function SDKComparison({
     }
   };
 
-  // Fetch code snippet from GitHub API
   const fetchCodeSnippet = async (
     filePath: string,
     startLine: number,
@@ -205,7 +193,6 @@ export default function SDKComparison({
       const content = atob(data.content);
       const lines = content.split("\n");
 
-      // Use actual start and end lines from AST, convert to 0-based indexing
       const snippetStart = Math.max(0, startLine - 1);
       const snippetEnd = Math.min(lines.length, endLine);
       const snippetLines = lines.slice(snippetStart, snippetEnd);
@@ -229,7 +216,6 @@ export default function SDKComparison({
     }
   };
 
-  // Toggle code snippet expansion
   const toggleCodeSnippet = (
     key: string,
     filePath: string,
@@ -242,7 +228,6 @@ export default function SDKComparison({
       newExpanded.delete(key);
     } else {
       newExpanded.add(key);
-      // Fetch code if not already cached
       if (!codeSnippets.has(key)) {
         fetchCodeSnippet(filePath, startLine, endLine, sdkName, key);
       }
@@ -250,7 +235,6 @@ export default function SDKComparison({
     setExpandedCodeSnippets(newExpanded);
   };
 
-  // Get sorted methods for a class, excluding constructors for TypeScript
   const getSortedMethods = (sdkClass: Class, sdkName: string): Method[] => {
     const methods =
       sdkName === "ts"
@@ -260,7 +244,6 @@ export default function SDKComparison({
     return methods.sort((a, b) => a.name.localeCompare(b.name));
   };
 
-  // Get normalized method name for comparison (camelCase for Python methods)
   const getNormalizedMethodName = (
     methodName: string,
     sdkName: string
@@ -268,7 +251,6 @@ export default function SDKComparison({
     return sdkName === "python" ? toCamelCase(methodName) : methodName;
   };
 
-  // Get method comparison status
   const getMethodComparisonStatus = (
     methodName: string,
     tsClass: Class | undefined,
@@ -279,16 +261,13 @@ export default function SDKComparison({
       return "missing";
     }
 
-    // Filter out constructors from TypeScript methods for comparison
     const tsMethodNames = tsClass.methods
       .filter((m) => m.name !== "constructor")
       .map((m) => m.name);
     const pythonMethodNames = pythonClass.methods.map((m) => m.name);
 
-    // Convert Python snake_case to camelCase for comparison
     const pythonMethodNamesCamelCase = pythonMethodNames.map(toCamelCase);
 
-    // Normalize the current method name based on SDK
     const normalizedCurrentMethod =
       currentSdkName === "python" ? toCamelCase(methodName) : methodName;
 
@@ -308,7 +287,6 @@ export default function SDKComparison({
     }
   };
 
-  // Render method comparison icon
   const renderMethodIcon = (
     methodName: string,
     tsClass: Class | undefined,
@@ -375,7 +353,6 @@ export default function SDKComparison({
     }
   };
 
-  // Get method tooltip
   const getMethodTooltip = (
     methodName: string,
     tsClass: Class | undefined,
@@ -401,7 +378,6 @@ export default function SDKComparison({
     }
   };
 
-  // Get class tooltip with implementation links
   const getClassTooltip = (
     className: string,
     tsClass: Class | undefined,
@@ -626,7 +602,6 @@ export default function SDKComparison({
               </div>
             </div>
 
-            {/* Code snippet for class */}
             {expandedCodeSnippets.has(`${sdkName}-${className}-class`) && (
               <div className="px-3 pb-3 border-t border-gray-100">
                 {loadingSnippets.has(`${sdkName}-${className}-class`) ? (
@@ -740,7 +715,6 @@ export default function SDKComparison({
                         </div>
                       </div>
 
-                      {/* Code snippet for method */}
                       {expandedCodeSnippets.has(
                         `${sdkName}-${className}-${method.name}`
                       ) && (
@@ -781,7 +755,6 @@ export default function SDKComparison({
                     </div>
                   );
                 })}
-                {/* Show constructor separately if it exists in TypeScript */}
                 {sdkName === "ts" &&
                   sdkClass.methods.some((m) => m.name === "constructor") && (
                     <div className="flex items-center space-x-2 text-sm text-gray-400 italic px-2 py-1 rounded">
@@ -837,7 +810,6 @@ export default function SDKComparison({
       className="min-h-screen bg-[#C0C0C0] flex flex-col"
       style={{ fontFamily: "MS Sans Serif, sans-serif" }}
     >
-      {/* Header */}
       <div className="bg-[#C0C0C0] border-2 border-t-[#FFFFFF] border-l-[#FFFFFF] border-r-[#808080] border-b-[#808080] shadow-[inset_1px_1px_0px_#808080,inset_-1px_-1px_0px_#FFFFFF]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-center">
@@ -861,7 +833,6 @@ export default function SDKComparison({
                 ></RetroGrid>
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8">
-                  {/* Mobile indicator for testing */}
                   <div className="lg:hidden text-xs text-red-600 font-bold mb-2">
                     MOBILE VIEW
                   </div>
@@ -903,9 +874,7 @@ export default function SDKComparison({
           </div>
         </div>
       </div>
-      {/* Filter Controls */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        {/* Search Bar */}
         <div className="relative mb-4">
           <input
             type="text"
@@ -932,7 +901,6 @@ export default function SDKComparison({
           </div>
         </div>
 
-        {/* Filter Checkboxes */}
         <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-4 items-start sm:items-center mb-4">
           <span className="text-sm font-medium text-black">Show:</span>
           <label className="flex items-center space-x-2 cursor-pointer">
@@ -975,7 +943,6 @@ export default function SDKComparison({
           </label>
         </div>
 
-        {/* Icon Legend */}
         <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-4 items-start sm:items-center text-xs text-gray-600">
           <span className="font-medium">Legend:</span>
           <div className="flex items-center space-x-1">
@@ -1032,7 +999,6 @@ export default function SDKComparison({
         </div>
       </div>
 
-      {/* Stats */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-[#C0C0C0] border-2 border-t-[#FFFFFF] border-l-[#FFFFFF] border-r-[#808080] border-b-[#808080] shadow-[inset_1px_1px_0px_#808080,inset_-1px_-1px_0px_#FFFFFF] p-4">
@@ -1069,9 +1035,7 @@ export default function SDKComparison({
         </div>
       </div>
 
-      {/* Two Column Comparison */}
       <div className="flex-1 flex flex-col lg:flex-row">
-        {/* TypeScript Column */}
         <div className="flex-1 bg-[#C0C0C0] border-r-0 lg:border-r-2 border-r-[#808080] border-b-2 lg:border-b-0 border-b-[#808080] mb-4 lg:mb-0">
           <div className="bg-[#000080] text-white px-6 py-4 sticky top-0 z-10 border-b-2 border-b-[#808080]">
             <h2
@@ -1110,7 +1074,6 @@ export default function SDKComparison({
           </div>
         </div>
 
-        {/* Python Column */}
         <div className="flex-1 bg-[#C0C0C0]">
           <div className="bg-[#008000] text-white px-6 py-4 sticky top-0 z-10 border-b-2 border-b-[#808080]">
             <h2
