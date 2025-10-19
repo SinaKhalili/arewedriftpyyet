@@ -866,7 +866,7 @@ export default function SDKComparison({
                     }}
                   >
                     <Tilt>
-                      <img src="/public/typescript.png" className="w-80 h-80" />
+                      <img src="/typescript.png" className="w-80 h-80" />
                     </Tilt>
                   </div>
                   <div
@@ -879,7 +879,7 @@ export default function SDKComparison({
                     }}
                   >
                     <Tilt>
-                      <img src="/public/python.png" className="w-80 h-80" />
+                      <img src="/python.png" className="w-80 h-80" />
                     </Tilt>
                   </div>
                 </div>
