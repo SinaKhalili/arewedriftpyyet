@@ -531,7 +531,7 @@ export default function SDKComparison({
       return (
         <div className="mb-2" key={`${sdkName}-${className}`}>
           <div className="bg-white border-2 border-t-[#FFFFFF] border-l-[#FFFFFF] border-r-[#808080] border-b-[#808080] shadow-[inset_1px_1px_0px_#808080,inset_-1px_-1px_0px_#FFFFFF]">
-            <div className="flex items-center justify-between p-3 hover:bg-[#C0C0C0] h-[72px]">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 hover:bg-[#C0C0C0] min-h-[72px] gap-2 sm:gap-0">
               <div className="flex items-center space-x-2 flex-1">
                 <h3
                   className="text-sm font-semibold text-black"
@@ -543,7 +543,7 @@ export default function SDKComparison({
                   {getComparisonIcon()}
                 </div>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
                 <span className="text-xs text-gray-500">
                   {sdkName === "ts"
                     ? `${
@@ -834,7 +834,7 @@ export default function SDKComparison({
 
   return (
     <div
-      className="h-screen bg-[#C0C0C0] flex flex-col"
+      className="min-h-screen bg-[#C0C0C0] flex flex-col"
       style={{ fontFamily: "MS Sans Serif, sans-serif" }}
     >
       {/* Header */}
@@ -842,20 +842,29 @@ export default function SDKComparison({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-center">
             <div className="flex-1 text-center">
-              <div className="relative h-[500px] w-full overflow-hidden">
+              <div className="relative h-[300px] sm:h-[400px] lg:h-[500px] w-full overflow-hidden">
                 <HyperText
-                  className="text-4xl font-bold text-black"
+                  className="text-2xl sm:text-3xl lg:text-4xl font-bold text-black"
                   style={{ fontFamily: "Press Start 2P, monospace" }}
                 >
                   are we driftpy yet?
                 </HyperText>
-                <ComicText fontSize={3}>probably not! </ComicText>
+                <ComicText fontSize={2} className="sm:hidden">
+                  probably not!
+                </ComicText>
+                <ComicText fontSize={3} className="hidden sm:block">
+                  probably not!
+                </ComicText>
                 <RetroGrid
                   lightLineColor="#000000"
                   darkLineColor="#000000"
                 ></RetroGrid>
 
-                <div className="flex items-center justify-center">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8">
+                  {/* Mobile indicator for testing */}
+                  <div className="lg:hidden text-xs text-red-600 font-bold mb-2">
+                    MOBILE VIEW
+                  </div>
                   <div
                     className="cursor-pointer"
                     onClick={() => {
@@ -866,7 +875,10 @@ export default function SDKComparison({
                     }}
                   >
                     <Tilt>
-                      <img src="/typescript.png" className="w-80 h-80" />
+                      <img
+                        src="/typescript.png"
+                        className="w-40 h-40 sm:w-60 sm:h-60 lg:w-80 lg:h-80"
+                      />
                     </Tilt>
                   </div>
                   <div
@@ -879,7 +891,10 @@ export default function SDKComparison({
                     }}
                   >
                     <Tilt>
-                      <img src="/python.png" className="w-80 h-80" />
+                      <img
+                        src="/python.png"
+                        className="w-40 h-40 sm:w-60 sm:h-60 lg:w-80 lg:h-80"
+                      />
                     </Tilt>
                   </div>
                 </div>
@@ -918,7 +933,7 @@ export default function SDKComparison({
         </div>
 
         {/* Filter Checkboxes */}
-        <div className="flex flex-wrap gap-4 items-center mb-4">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-4 items-start sm:items-center mb-4">
           <span className="text-sm font-medium text-black">Show:</span>
           <label className="flex items-center space-x-2 cursor-pointer">
             <input
@@ -961,7 +976,7 @@ export default function SDKComparison({
         </div>
 
         {/* Icon Legend */}
-        <div className="flex flex-wrap gap-4 items-center text-xs text-gray-600">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-4 items-start sm:items-center text-xs text-gray-600">
           <span className="font-medium">Legend:</span>
           <div className="flex items-center space-x-1">
             <svg
@@ -1019,7 +1034,7 @@ export default function SDKComparison({
 
       {/* Stats */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-[#C0C0C0] border-2 border-t-[#FFFFFF] border-l-[#FFFFFF] border-r-[#808080] border-b-[#808080] shadow-[inset_1px_1px_0px_#808080,inset_-1px_-1px_0px_#FFFFFF] p-4">
             <h3 className="text-lg font-semibold text-black">TypeScript SDK</h3>
             <p className="text-black">{tsData.classes.length} classes</p>
@@ -1055,9 +1070,9 @@ export default function SDKComparison({
       </div>
 
       {/* Two Column Comparison */}
-      <div className="flex-1 flex">
+      <div className="flex-1 flex flex-col lg:flex-row">
         {/* TypeScript Column */}
-        <div className="flex-1 bg-[#C0C0C0] border-r-2 border-r-[#808080]">
+        <div className="flex-1 bg-[#C0C0C0] border-r-0 lg:border-r-2 border-r-[#808080] border-b-2 lg:border-b-0 border-b-[#808080] mb-4 lg:mb-0">
           <div className="bg-[#000080] text-white px-6 py-4 sticky top-0 z-10 border-b-2 border-b-[#808080]">
             <h2
               className="text-lg font-semibold"
