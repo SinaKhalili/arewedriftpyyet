@@ -83,6 +83,8 @@ export default function SDKComparison({
   const [sortByLength, setSortByLength] = useState<Set<string>>(new Set());
   const [showLongestMethod, setShowLongestMethod] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showRatioLeaderboard, setShowRatioLeaderboard] = useState(false);
+  const [showTsRatioLeaderboard, setShowTsRatioLeaderboard] = useState(false);
 
   const tsColumnRef = useRef<HTMLDivElement>(null);
   const pythonColumnRef = useRef<HTMLDivElement>(null);
@@ -412,6 +414,139 @@ export default function SDKComparison({
 
     // Sort by length (descending) and return top 15
     return methodLengths.sort((a, b) => b.length - a.length).slice(0, 15);
+  };
+
+  const findSizeRatioMethods = () => {
+    const methodRatios: Array<{
+      methodName: string;
+      className: string;
+      pythonLength: number;
+      tsLength: number;
+      ratio: number;
+    }> = [];
+
+    // Create maps for quick lookup
+    const tsMethods = new Map<string, { method: Method; className: string }>();
+    const pythonMethods = new Map<
+      string,
+      { method: Method; className: string }
+    >();
+
+    // Index TypeScript methods
+    tsData.classes.forEach((cls) => {
+      cls.methods.forEach((method) => {
+        if (method.name !== "constructor") {
+          const normalizedName = method.name.toLowerCase().replace(/_/g, "");
+          tsMethods.set(`${cls.name}.${normalizedName}`, {
+            method,
+            className: cls.name,
+          });
+        }
+      });
+    });
+
+    // Index Python methods and find matches
+    pythonData.classes.forEach((cls) => {
+      cls.methods.forEach((method) => {
+        const normalizedName = method.name.toLowerCase().replace(/_/g, "");
+        const pythonLength =
+          (method.endLine || method.line || 1) -
+          (method.startLine || method.line || 1) +
+          1;
+
+        // Look for matching TypeScript method
+        const tsKey = `${cls.name}.${normalizedName}`;
+        const tsMethod = tsMethods.get(tsKey);
+
+        if (tsMethod) {
+          const tsLength =
+            (tsMethod.method.endLine || tsMethod.method.line || 1) -
+            (tsMethod.method.startLine || tsMethod.method.line || 1) +
+            1;
+
+          // Only include if Python is longer than TypeScript
+          if (pythonLength > tsLength) {
+            const ratio = pythonLength / tsLength;
+            methodRatios.push({
+              methodName: method.name,
+              className: cls.name,
+              pythonLength,
+              tsLength,
+              ratio,
+            });
+          }
+        }
+      });
+    });
+
+    // Sort by ratio (descending) and return top 15
+    return methodRatios.sort((a, b) => b.ratio - a.ratio).slice(0, 15);
+  };
+
+  const findTsSizeRatioMethods = () => {
+    const methodRatios: Array<{
+      methodName: string;
+      className: string;
+      pythonLength: number;
+      tsLength: number;
+      ratio: number;
+    }> = [];
+
+    // Create maps for quick lookup
+    const pythonMethods = new Map<
+      string,
+      { method: Method; className: string }
+    >();
+
+    // Index Python methods
+    pythonData.classes.forEach((cls) => {
+      cls.methods.forEach((method) => {
+        const normalizedName = method.name.toLowerCase().replace(/_/g, "");
+        pythonMethods.set(`${cls.name}.${normalizedName}`, {
+          method,
+          className: cls.name,
+        });
+      });
+    });
+
+    // Index TypeScript methods and find matches
+    tsData.classes.forEach((cls) => {
+      cls.methods.forEach((method) => {
+        if (method.name !== "constructor") {
+          const normalizedName = method.name.toLowerCase().replace(/_/g, "");
+          const tsLength =
+            (method.endLine || method.line || 1) -
+            (method.startLine || method.line || 1) +
+            1;
+
+          // Look for matching Python method
+          const pythonKey = `${cls.name}.${normalizedName}`;
+          const pythonMethod = pythonMethods.get(pythonKey);
+
+          if (pythonMethod) {
+            const pythonLength =
+              (pythonMethod.method.endLine || pythonMethod.method.line || 1) -
+              (pythonMethod.method.startLine || pythonMethod.method.line || 1) +
+              1;
+
+            // Only include if TypeScript is longer than Python
+            if (tsLength > pythonLength) {
+              const ratio = tsLength / pythonLength;
+              methodRatios.push({
+                methodName: method.name,
+                className: cls.name,
+                pythonLength,
+                tsLength,
+                ratio,
+              });
+            }
+          }
+        }
+      });
+    });
+
+    // Sort by ratio (descending) and return top 15
+    return methodRatios.sort((a, b) => b.ratio - a.ratio).slice(0, 15);
   };
 
   const getExpandedSnippetContent = (key: string) => {
@@ -804,7 +939,7 @@ export default function SDKComparison({
                   {getComparisonIcon()}
                 </div>
               </div>
-              <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-1 w-full sm:w-auto">
+              <div className="flex flex-row sm:flex-row items-start space-y-1 sm:space-y-0 sm:space-x-1 w-full sm:w-auto">
                 <span className="text-xs text-gray-500">
                   {sdkName === "ts"
                     ? `${
@@ -1279,13 +1414,27 @@ export default function SDKComparison({
           </label>
         </div>
 
-        <div className="flex justify-center mb-2">
+        <div className="flex justify-center mb-2 gap-2">
           <button
             onClick={() => setShowLeaderboard(!showLeaderboard)}
             className="bg-[#C0C0C0] border border-t-[#FFFFFF] border-l-[#FFFFFF] border-r-[#808080] border-b-[#808080] px-3 py-1 text-xs text-black hover:bg-[#D0D0D0] active:border-t-[#808080] active:border-l-[#808080] active:border-r-[#FFFFFF] active:border-b-[#FFFFFF]"
             style={{ fontFamily: "MS Sans Serif, sans-serif" }}
           >
-            🏆 Method Length Leaderboard
+            🏆 Longest Methods
+          </button>
+          <button
+            onClick={() => setShowRatioLeaderboard(!showRatioLeaderboard)}
+            className="bg-[#C0C0C0] border border-t-[#FFFFFF] border-l-[#FFFFFF] border-r-[#808080] border-b-[#808080] px-3 py-1 text-xs text-black hover:bg-[#D0D0D0] active:border-t-[#808080] active:border-l-[#808080] active:border-r-[#FFFFFF] active:border-b-[#FFFFFF]"
+            style={{ fontFamily: "MS Sans Serif, sans-serif" }}
+          >
+            📊 Python &gt; TS
+          </button>
+          <button
+            onClick={() => setShowTsRatioLeaderboard(!showTsRatioLeaderboard)}
+            className="bg-[#C0C0C0] border border-t-[#FFFFFF] border-l-[#FFFFFF] border-r-[#808080] border-b-[#808080] px-3 py-1 text-xs text-black hover:bg-[#D0D0D0] active:border-t-[#808080] active:border-l-[#808080] active:border-r-[#FFFFFF] active:border-b-[#FFFFFF]"
+            style={{ fontFamily: "MS Sans Serif, sans-serif" }}
+          >
+            📊 TS &gt; Python
           </button>
         </div>
 
@@ -1337,21 +1486,176 @@ export default function SDKComparison({
                         {item.method.name}
                       </td>
                       <td className="border-r border-gray-300 px-2 py-1">
-                        {item.className}
+                        <button
+                          onClick={() => setSearchTerm(item.className)}
+                          className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                        >
+                          {item.className}
+                        </button>
                       </td>
                       <td className="border-r border-gray-300 px-2 py-1">
-                        <span
-                          className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${
-                            item.sdkName === "ts"
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-green-100 text-green-800"
-                          }`}
-                        >
-                          {item.sdkName === "ts" ? "TypeScript" : "Python"}
+                        <span className="text-2xs">
+                          {item.sdkName === "ts"
+                            ? "💻 TypeScript"
+                            : "🐍 Python"}
                         </span>
                       </td>
                       <td className="px-2 py-1 font-bold text-center">
                         {item.length}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {showRatioLeaderboard && (
+          <div className="mb-4 bg-white border-2 border-gray-400 shadow-lg">
+            <div className="bg-[#C0C0C0] border-b border-gray-400 p-2">
+              <h3
+                className="text-sm font-bold text-black"
+                style={{ fontFamily: "MS Sans Serif, sans-serif" }}
+              >
+                📊 Python vs TypeScript Size Ratio (Top 15)
+              </h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-[#E0E0E0] border-b border-gray-300">
+                    <th className="border-r border-gray-300 px-2 py-1 text-left font-bold">
+                      Rank
+                    </th>
+                    <th className="border-r border-gray-300 px-2 py-1 text-left font-bold">
+                      Method
+                    </th>
+                    <th className="border-r border-gray-300 px-2 py-1 text-left font-bold">
+                      Class
+                    </th>
+                    <th className="border-r border-gray-300 px-2 py-1 text-left font-bold">
+                      🐍 Python Lines
+                    </th>
+                    <th className="border-r border-gray-300 px-2 py-1 text-left font-bold">
+                      💻 TS Lines
+                    </th>
+                    <th className="px-2 py-1 text-left font-bold">Ratio</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {findSizeRatioMethods().map((item, index) => (
+                    <tr
+                      key={`${item.className}-${item.methodName}`}
+                      className="border-b border-gray-200 hover:bg-gray-50"
+                    >
+                      <td className="border-r border-gray-300 px-2 py-1 font-bold text-center">
+                        {index === 0
+                          ? "🥇"
+                          : index === 1
+                          ? "🥈"
+                          : index === 2
+                          ? "🥉"
+                          : `#${index + 1}`}
+                      </td>
+                      <td className="border-r border-gray-300 px-2 py-1 font-mono text-xs">
+                        {item.methodName}
+                      </td>
+                      <td className="border-r border-gray-300 px-2 py-1">
+                        <button
+                          onClick={() => setSearchTerm(item.className)}
+                          className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                        >
+                          {item.className}
+                        </button>
+                      </td>
+                      <td className="border-r border-gray-300 px-2 py-1 font-bold text-center text-green-700">
+                        {item.pythonLength}
+                      </td>
+                      <td className="border-r border-gray-300 px-2 py-1 font-bold text-center text-blue-700">
+                        {item.tsLength}
+                      </td>
+                      <td className="px-2 py-1 font-bold text-center">
+                        <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded text-xs">
+                          {item.ratio.toFixed(1)}x
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {showTsRatioLeaderboard && (
+          <div className="mb-4 bg-white border-2 border-gray-400 shadow-lg">
+            <div className="bg-[#C0C0C0] border-b border-gray-400 p-2">
+              <h3
+                className="text-sm font-bold text-black"
+                style={{ fontFamily: "MS Sans Serif, sans-serif" }}
+              >
+                📊 TypeScript vs Python Size Ratio (Top 15)
+              </h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-[#E0E0E0] border-b border-gray-300">
+                    <th className="border-r border-gray-300 px-2 py-1 text-left font-bold">
+                      Rank
+                    </th>
+                    <th className="border-r border-gray-300 px-2 py-1 text-left font-bold">
+                      Method
+                    </th>
+                    <th className="border-r border-gray-300 px-2 py-1 text-left font-bold">
+                      Class
+                    </th>
+                    <th className="border-r border-gray-300 px-2 py-1 text-left font-bold">
+                      💻 TS Lines
+                    </th>
+                    <th className="border-r border-gray-300 px-2 py-1 text-left font-bold">
+                      🐍 Python Lines
+                    </th>
+                    <th className="px-2 py-1 text-left font-bold">Ratio</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {findTsSizeRatioMethods().map((item, index) => (
+                    <tr
+                      key={`${item.className}-${item.methodName}`}
+                      className="border-b border-gray-200 hover:bg-gray-50"
+                    >
+                      <td className="border-r border-gray-300 px-2 py-1 font-bold text-center">
+                        {index === 0
+                          ? "🥇"
+                          : index === 1
+                          ? "🥈"
+                          : index === 2
+                          ? "🥉"
+                          : `#${index + 1}`}
+                      </td>
+                      <td className="border-r border-gray-300 px-2 py-1 font-mono text-xs">
+                        {item.methodName}
+                      </td>
+                      <td className="border-r border-gray-300 px-2 py-1">
+                        <button
+                          onClick={() => setSearchTerm(item.className)}
+                          className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                        >
+                          {item.className}
+                        </button>
+                      </td>
+                      <td className="border-r border-gray-300 px-2 py-1 font-bold text-center text-blue-700">
+                        {item.tsLength}
+                      </td>
+                      <td className="border-r border-gray-300 px-2 py-1 font-bold text-center text-green-700">
+                        {item.pythonLength}
+                      </td>
+                      <td className="px-2 py-1 font-bold text-center">
+                        <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded text-xs">
+                          {item.ratio.toFixed(1)}x
+                        </span>
                       </td>
                     </tr>
                   ))}
