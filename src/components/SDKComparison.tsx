@@ -1087,7 +1087,12 @@ export default function SDKComparison({
           <div
             className="p-4 h-full overflow-y-auto bg-[#C0C0C0]"
             ref={tsColumnRef}
-            onScroll={() => handleScroll(tsColumnRef, pythonColumnRef)}
+            onScroll={() =>
+              handleScroll(
+                tsColumnRef as React.RefObject<HTMLDivElement>,
+                pythonColumnRef as React.RefObject<HTMLDivElement>
+              )
+            }
           >
             {filteredClassNames.map((className, index) => (
               <div key={`ts-${className}`}>
@@ -1121,7 +1126,12 @@ export default function SDKComparison({
           <div
             className="p-4 h-full overflow-y-auto bg-[#C0C0C0]"
             ref={pythonColumnRef}
-            onScroll={() => handleScroll(pythonColumnRef, tsColumnRef)}
+            onScroll={() =>
+              handleScroll(
+                pythonColumnRef as React.RefObject<HTMLDivElement>,
+                tsColumnRef as React.RefObject<HTMLDivElement>
+              )
+            }
           >
             {filteredClassNames.map((className, index) => (
               <div key={`python-${className}`}>

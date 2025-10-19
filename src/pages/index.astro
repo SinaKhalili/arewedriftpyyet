@@ -3,9 +3,29 @@ import Layout from "../layouts/Layout.astro";
 import SDKComparison from "../components/SDKComparison.tsx";
 import ts_data from "../data/typescript_sdk.json";
 import python_data from "../data/python_sdk.json";
-import { ComicText } from "@/components/ui/comic-text";
+
+interface SDKData {
+  classes: Class[];
+}
+
+interface Class {
+  name: string;
+  file: string;
+  methods: Method[];
+}
+
+interface Method {
+  name: string;
+  kind: string;
+  parameters?: Array<{ name: string; type: string }>;
+  returns?: string;
+}
 ---
 
 <Layout>
-  <SDKComparison tsData={ts_data} pythonData={python_data} client:load />
+  <SDKComparison
+    tsData={ts_data as unknown as SDKData}
+    pythonData={python_data as unknown as SDKData}
+    client:load
+  />
 </Layout>
