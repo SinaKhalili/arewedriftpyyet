@@ -2,7 +2,7 @@ import React, { useState, useRef } from "react";
 import Prism from "prismjs";
 import "prismjs/components/prism-typescript";
 import "prismjs/components/prism-python";
-import "prismjs/themes/prism.css";
+import "prismjs/themes/prism-tomorrow.css";
 import { ComicText } from "@/components/ui/comic-text";
 import { RetroGrid } from "./ui/retro-grid";
 import { HyperText } from "./ui/hyper-text";
@@ -506,8 +506,8 @@ export default function SDKComparison({
     if (sdkClass) {
       return (
         <div className="mb-2" key={`${sdkName}-${className}`}>
-          <div className="bg-white border-2 border-t-[#FFFFFF] border-l-[#FFFFFF] border-r-[#808080] border-b-[#808080] shadow-[inset_1px_1px_0px_#808080,inset_-1px_-1px_0px_#FFFFFF]">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 hover:bg-[#C0C0C0] min-h-[72px] gap-2 sm:gap-0">
+          <div className="border-2 border-t-[#FFFFFF] border-l-[#FFFFFF] border-r-[#808080] border-b-[#808080] shadow-[inset_1px_1px_0px_#808080,inset_-1px_-1px_0px_#FFFFFF]">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-2 hover:bg-[#C0C0C0] min-h-[60px] gap-1 sm:gap-0">
               <div className="flex items-center space-x-2 flex-1">
                 <h3
                   className="text-sm font-semibold text-black"
@@ -519,7 +519,7 @@ export default function SDKComparison({
                   {getComparisonIcon()}
                 </div>
               </div>
-              <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-1 w-full sm:w-auto">
                 <span className="text-xs text-gray-500">
                   {sdkName === "ts"
                     ? `${
@@ -528,19 +528,8 @@ export default function SDKComparison({
                       } methods`
                     : `${sdkClass.methods.length} methods`}
                 </span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleClass(className);
-                  }}
-                  className="bg-[#C0C0C0] border border-t-[#FFFFFF] border-l-[#FFFFFF] border-r-[#808080] border-b-[#808080] px-2 py-1 text-xs text-black hover:bg-[#D0D0D0] active:border-t-[#808080] active:border-l-[#808080] active:border-r-[#FFFFFF] active:border-b-[#FFFFFF]"
-                  title="Expand/Collapse class"
-                  style={{ fontFamily: "MS Sans Serif, sans-serif" }}
-                >
-                  {isExpanded ? "Collapse" : "Expand"}
-                </button>
-                <div className="flex flex-col items-end space-y-1">
-                  <div className="flex items-center space-x-2">
+                <div className="flex flex-col items-end space-y-0.5">
+                  <div className="flex items-center space-x-1">
                     <a
                       href={`https://github.com/drift-labs/${
                         sdkName === "ts" ? "protocol-v2" : "driftpy"
@@ -559,6 +548,17 @@ export default function SDKComparison({
                     >
                       {sdkClass.file}
                     </a>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleClass(className);
+                      }}
+                      className="bg-[#C0C0C0] border border-t-[#FFFFFF] border-l-[#FFFFFF] border-r-[#808080] border-b-[#808080] px-2 py-1 text-xs text-black hover:bg-[#D0D0D0] active:border-t-[#808080] active:border-l-[#808080] active:border-r-[#FFFFFF] active:border-b-[#FFFFFF]"
+                      title="Expand/Collapse class"
+                      style={{ fontFamily: "MS Sans Serif, sans-serif" }}
+                    >
+                      {isExpanded ? "Collapse" : "Expand"}
+                    </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -610,7 +610,7 @@ export default function SDKComparison({
                   </div>
                 ) : codeSnippets.has(`${sdkName}-${className}-class`) ? (
                   <div className="mt-2">
-                    <pre className="bg-gray-50 p-3 rounded text-xs overflow-x-auto border">
+                    <pre className="bg-black p-3 rounded text-xs overflow-x-auto border">
                       <code
                         className={`language-${
                           codeSnippets.get(`${sdkName}-${className}-class`)
@@ -632,7 +632,7 @@ export default function SDKComparison({
             )}
 
             {isExpanded && (
-              <div className="px-3 pb-3 space-y-1">
+              <div className="px-2 pb-2 space-y-0.5">
                 {getSortedMethods(sdkClass, sdkName).map((method) => {
                   const tsClass = tsClassesMap.get(className);
                   const pythonClass = pythonClassesMap.get(className);
@@ -664,8 +664,8 @@ export default function SDKComparison({
                           )}
                         </div>
                         <span className="flex-1">{method.name}</span>
-                        <div className="flex flex-col items-end space-y-1">
-                          <div className="flex items-center space-x-2">
+                        <div className="flex flex-col items-end space-y-0.5">
+                          <div className="flex items-center space-x-1">
                             <a
                               href={`https://github.com/drift-labs/${
                                 sdkName === "ts" ? "protocol-v2" : "driftpy"
@@ -729,7 +729,7 @@ export default function SDKComparison({
                               `${sdkName}-${className}-${method.name}`
                             ) ? (
                             <div className="mt-1">
-                              <pre className="bg-gray-50 p-2 rounded text-xs overflow-x-auto border">
+                              <pre className="bg-black p-2 rounded text-xs overflow-x-auto border">
                                 <code
                                   className={`language-${
                                     codeSnippets.get(
@@ -782,8 +782,8 @@ export default function SDKComparison({
     } else {
       return (
         <div className="mb-2" key={`${sdkName}-${className}`}>
-          <div className="bg-white border-2 border-t-[#FFFFFF] border-l-[#FFFFFF] border-r-[#808080] border-b-[#808080] shadow-[inset_1px_1px_0px_#808080,inset_-1px_-1px_0px_#FFFFFF] h-[72px] flex flex-col">
-            <div className="p-3 flex-1 flex flex-col justify-center">
+          <div className="border-2 border-t-[#FFFFFF] border-l-[#FFFFFF] border-r-[#808080] border-b-[#808080] shadow-[inset_1px_1px_0px_#808080,inset_-1px_-1px_0px_#FFFFFF] h-[60px] flex flex-col">
+            <div className="p-2 flex-1 flex flex-col justify-center">
               <div className="flex items-center space-x-2">
                 <h3
                   className="text-sm font-semibold text-gray-600"
@@ -817,14 +817,14 @@ export default function SDKComparison({
               <div className="relative h-[300px] sm:h-[400px] lg:h-[500px] w-full overflow-hidden">
                 <HyperText
                   className="text-2xl sm:text-3xl lg:text-4xl font-bold text-black"
-                  style={{ fontFamily: "Press Start 2P, monospace" }}
+                  style={{ fontFamily: "'Press Start 2P', monospace" }}
                 >
                   are we driftpy yet?
                 </HyperText>
                 <ComicText fontSize={2} className="sm:hidden">
                   probably not!
                 </ComicText>
-                <ComicText fontSize={3} className="hidden sm:block">
+                <ComicText fontSize={2} className="hidden sm:block">
                   probably not!
                 </ComicText>
                 <RetroGrid
@@ -848,7 +848,7 @@ export default function SDKComparison({
                     <Tilt>
                       <img
                         src="/typescript.png"
-                        className="w-40 h-40 sm:w-60 sm:h-60 lg:w-80 lg:h-80"
+                        className="w-40 h-40 sm:w-60 sm:h-60 lg:w-60 lg:h-60"
                       />
                     </Tilt>
                   </div>
@@ -864,7 +864,7 @@ export default function SDKComparison({
                     <Tilt>
                       <img
                         src="/python.png"
-                        className="w-40 h-40 sm:w-60 sm:h-60 lg:w-80 lg:h-80"
+                        className="w-40 h-40 sm:w-60 sm:h-60 lg:w-70 lg:h-70"
                       />
                     </Tilt>
                   </div>
@@ -874,19 +874,19 @@ export default function SDKComparison({
           </div>
         </div>
       </div>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div className="relative mb-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
+        <div className="relative mb-2">
           <input
             type="text"
             placeholder="Search classes and methods..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-3 py-2 bg-white border-2 border-t-[#808080] border-l-[#808080] border-r-[#FFFFFF] border-b-[#FFFFFF] shadow-[inset_1px_1px_0px_#808080,inset_-1px_-1px_0px_#FFFFFF] text-black"
+            className="w-full px-2 py-1 bg-white border-2 border-t-[#808080] border-l-[#808080] border-r-[#FFFFFF] border-b-[#FFFFFF] shadow-[inset_1px_1px_0px_#808080,inset_-1px_-1px_0px_#FFFFFF] text-black text-sm"
             style={{ fontFamily: "MS Sans Serif, sans-serif" }}
           />
-          <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+          <div className="absolute inset-y-0 right-0 pr-2 flex items-center">
             <svg
-              className="h-5 w-5 text-black"
+              className="h-4 w-4 text-black"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -901,49 +901,49 @@ export default function SDKComparison({
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-4 items-start sm:items-center mb-4">
-          <span className="text-sm font-medium text-black">Show:</span>
-          <label className="flex items-center space-x-2 cursor-pointer">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-1 sm:gap-2 items-start sm:items-center mb-2">
+          <span className="text-xs font-medium text-black">Show:</span>
+          <label className="flex items-center space-x-1 cursor-pointer">
             <input
               type="checkbox"
               checked={showCommon}
               onChange={(e) => setShowCommon(e.target.checked)}
-              className="w-4 h-4 border-2 border-t-[#808080] border-l-[#808080] border-r-[#FFFFFF] border-b-[#FFFFFF] bg-white"
+              className="w-3 h-3 border-2 border-t-[#808080] border-l-[#808080] border-r-[#FFFFFF] border-b-[#FFFFFF] bg-white"
             />
-            <span className="text-sm text-black">
+            <span className="text-xs text-black">
               Common classes (both SDKs)
             </span>
           </label>
-          <label className="flex items-center space-x-2 cursor-pointer">
+          <label className="flex items-center space-x-1 cursor-pointer">
             <input
               type="checkbox"
               checked={showTsOnly}
               onChange={(e) => setShowTsOnly(e.target.checked)}
-              className="w-4 h-4 border-2 border-t-[#808080] border-l-[#808080] border-r-[#FFFFFF] border-b-[#FFFFFF] bg-white"
+              className="w-3 h-3 border-2 border-t-[#808080] border-l-[#808080] border-r-[#FFFFFF] border-b-[#FFFFFF] bg-white"
             />
-            <span className="text-sm text-black">TypeScript only</span>
+            <span className="text-xs text-black">TypeScript only</span>
           </label>
-          <label className="flex items-center space-x-2 cursor-pointer">
+          <label className="flex items-center space-x-1 cursor-pointer">
             <input
               type="checkbox"
               checked={showPythonOnly}
               onChange={(e) => setShowPythonOnly(e.target.checked)}
-              className="w-4 h-4 border-2 border-t-[#808080] border-l-[#808080] border-r-[#FFFFFF] border-b-[#FFFFFF] bg-white"
+              className="w-3 h-3 border-2 border-t-[#808080] border-l-[#808080] border-r-[#FFFFFF] border-b-[#FFFFFF] bg-white"
             />
-            <span className="text-sm text-black">Python only</span>
+            <span className="text-xs text-black">Python only</span>
           </label>
-          <label className="flex items-center space-x-2 cursor-pointer">
+          <label className="flex items-center space-x-1 cursor-pointer">
             <input
               type="checkbox"
               checked={hideEmptyClasses}
               onChange={(e) => setHideEmptyClasses(e.target.checked)}
-              className="w-4 h-4 border-2 border-t-[#808080] border-l-[#808080] border-r-[#FFFFFF] border-b-[#FFFFFF] bg-white"
+              className="w-3 h-3 border-2 border-t-[#808080] border-l-[#808080] border-r-[#FFFFFF] border-b-[#FFFFFF] bg-white"
             />
-            <span className="text-sm text-black">Hide empty classes</span>
+            <span className="text-xs text-black">Hide empty classes</span>
           </label>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-4 items-start sm:items-center text-xs text-gray-600">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-1 sm:gap-2 items-start sm:items-center text-xs text-gray-600">
           <span className="font-medium">Legend:</span>
           <div className="flex items-center space-x-1">
             <svg
@@ -999,19 +999,48 @@ export default function SDKComparison({
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-[#C0C0C0] border-2 border-t-[#FFFFFF] border-l-[#FFFFFF] border-r-[#808080] border-b-[#808080] shadow-[inset_1px_1px_0px_#808080,inset_-1px_-1px_0px_#FFFFFF] p-4">
-            <h3 className="text-lg font-semibold text-black">TypeScript SDK</h3>
-            <p className="text-black">{tsData.classes.length} classes</p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2 items-center justify-center">
+          <div className="bg-[#C0C0C0] border-2 border-t-[#FFFFFF] border-l-[#FFFFFF] border-r-[#808080] border-b-[#808080] shadow-[inset_1px_1px_0px_#808080,inset_-1px_-1px_0px_#FFFFFF] p-2">
+            <h3 className="text-sm font-semibold text-black">TypeScript SDK</h3>
+            <p className="text-black text-xs">
+              {tsData.classes.length} classes
+            </p>
           </div>
-          <div className="bg-[#C0C0C0] border-2 border-t-[#FFFFFF] border-l-[#FFFFFF] border-r-[#808080] border-b-[#808080] shadow-[inset_1px_1px_0px_#808080,inset_-1px_-1px_0px_#FFFFFF] p-4">
-            <h3 className="text-lg font-semibold text-black">Python SDK</h3>
-            <p className="text-black">{pythonData.classes.length} classes</p>
+          <div className="bg-[#C0C0C0] border-2 border-t-[#FFFFFF] border-l-[#FFFFFF] border-r-[#808080] border-b-[#808080] shadow-[inset_1px_1px_0px_#808080,inset_-1px_-1px_0px_#FFFFFF] p-2">
+            <h3 className="text-sm font-semibold text-black">Python SDK</h3>
+            <p className="text-black text-xs">
+              {pythonData.classes.length} classes
+            </p>
           </div>
-          <div className="bg-[#C0C0C0] border-2 border-t-[#FFFFFF] border-l-[#FFFFFF] border-r-[#808080] border-b-[#808080] shadow-[inset_1px_1px_0px_#808080,inset_-1px_-1px_0px_#FFFFFF] p-4">
-            <h3 className="text-lg font-semibold text-black">Common Classes</h3>
-            <p className="text-black">
+          <div className="bg-[#C0C0C0] border-2 border-t-[#FFFFFF] border-l-[#FFFFFF] border-r-[#808080] border-b-[#808080] shadow-[inset_1px_1px_0px_#808080,inset_-1px_-1px_0px_#FFFFFF] p-2">
+            <h3 className="text-sm font-semibold text-black">TS w/ Methods</h3>
+            <p className="text-black text-xs">
+              {
+                tsData.classes.filter(
+                  (cls) =>
+                    cls.methods.filter((m) => m.name !== "constructor").length >
+                    0
+                ).length
+              }{" "}
+              classes
+            </p>
+          </div>
+          <div className="bg-[#C0C0C0] border-2 border-t-[#FFFFFF] border-l-[#FFFFFF] border-r-[#808080] border-b-[#808080] shadow-[inset_1px_1px_0px_#808080,inset_-1px_-1px_0px_#FFFFFF] p-2">
+            <h3 className="text-sm font-semibold text-black">
+              Python w/ Methods
+            </h3>
+            <p className="text-black text-xs">
+              {
+                pythonData.classes.filter((cls) => cls.methods.length > 0)
+                  .length
+              }{" "}
+              classes
+            </p>
+          </div>
+          <div className="bg-[#C0C0C0] border-2 border-t-[#FFFFFF] border-l-[#FFFFFF] border-r-[#808080] border-b-[#808080] shadow-[inset_1px_1px_0px_#808080,inset_-1px_-1px_0px_#FFFFFF] p-2">
+            <h3 className="text-sm font-semibold text-black">Common Classes</h3>
+            <p className="text-black text-xs">
               {
                 sortedClassNames.filter(
                   (name) => tsClassesMap.has(name) && pythonClassesMap.has(name)
@@ -1020,9 +1049,9 @@ export default function SDKComparison({
               classes
             </p>
           </div>
-          <div className="bg-[#C0C0C0] border-2 border-t-[#FFFFFF] border-l-[#FFFFFF] border-r-[#808080] border-b-[#808080] shadow-[inset_1px_1px_0px_#808080,inset_-1px_-1px_0px_#FFFFFF] p-4">
-            <h3 className="text-lg font-semibold text-black">Unique Classes</h3>
-            <p className="text-black">
+          <div className="bg-[#C0C0C0] border-2 border-t-[#FFFFFF] border-l-[#FFFFFF] border-r-[#808080] border-b-[#808080] shadow-[inset_1px_1px_0px_#808080,inset_-1px_-1px_0px_#FFFFFF] p-2">
+            <h3 className="text-sm font-semibold text-black">Unique Classes</h3>
+            <p className="text-black text-xs">
               {
                 sortedClassNames.filter(
                   (name) =>
@@ -1041,15 +1070,15 @@ export default function SDKComparison({
             <h2
               className="text-lg font-semibold"
               style={{
-                fontFamily: "Press Start 2P, monospace",
+                fontFamily: "'Press Start 2P', monospace",
                 fontSize: "19px",
               }}
             >
-              TypeScript SDK
+              TypeScript
             </h2>
           </div>
           <div
-            className="p-4 h-full overflow-y-auto bg-[#C0C0C0]"
+            className="p-2 h-full overflow-y-auto bg-[#C0C0C0]"
             ref={tsColumnRef}
             onScroll={() =>
               handleScroll(
@@ -1059,15 +1088,15 @@ export default function SDKComparison({
             }
           >
             {filteredClassNames.map((className, index) => (
-              <div key={`ts-${className}`}>
+              <div
+                key={`ts-${className}`}
+                className={index % 2 === 0 ? "bg-[#C0C0C0]" : "bg-[#D0D0D0]"}
+              >
                 {renderClassCard(
                   className,
                   tsClassesMap.get(className),
                   "ts",
                   true
-                )}
-                {index < filteredClassNames.length - 1 && (
-                  <div className="border-t border-[#808080] my-4" />
                 )}
               </div>
             ))}
@@ -1079,7 +1108,7 @@ export default function SDKComparison({
             <h2
               className="text-lg font-semibold"
               style={{
-                fontFamily: "Press Start 2P, monospace",
+                fontFamily: "'Press Start 2P', monospace",
                 fontSize: "19px",
               }}
             >
@@ -1087,7 +1116,7 @@ export default function SDKComparison({
             </h2>
           </div>
           <div
-            className="p-4 h-full overflow-y-auto bg-[#C0C0C0]"
+            className="p-2 h-full overflow-y-auto bg-[#C0C0C0]"
             ref={pythonColumnRef}
             onScroll={() =>
               handleScroll(
@@ -1097,15 +1126,15 @@ export default function SDKComparison({
             }
           >
             {filteredClassNames.map((className, index) => (
-              <div key={`python-${className}`}>
+              <div
+                key={`python-${className}`}
+                className={index % 2 === 0 ? "bg-[#C0C0C0]" : "bg-[#D0D0D0]"}
+              >
                 {renderClassCard(
                   className,
                   pythonClassesMap.get(className),
                   "python",
                   false
-                )}
-                {index < filteredClassNames.length - 1 && (
-                  <div className="border-t border-[#808080] my-4" />
                 )}
               </div>
             ))}
