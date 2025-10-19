@@ -53,7 +53,6 @@ export default function SDKComparison({
   const [expandedClasses, setExpandedClasses] = useState<Set<string>>(
     new Set()
   );
-  const [hoveredMethod, setHoveredMethod] = useState<string | null>(null);
   const [hoveredClass, setHoveredClass] = useState<string | null>(null);
   const [expandedCodeSnippets, setExpandedCodeSnippets] = useState<Set<string>>(
     new Set()
@@ -66,10 +65,16 @@ export default function SDKComparison({
         file: string;
         line: number;
         language: string;
+        fullContent?: string;
+        startLine?: number;
+        endLine?: number;
       }
     >
   >(new Map());
   const [loadingSnippets, setLoadingSnippets] = useState<Set<string>>(
+    new Set()
+  );
+  const [expandedSnippets, setExpandedSnippets] = useState<Set<string>>(
     new Set()
   );
 
@@ -86,7 +91,27 @@ export default function SDKComparison({
     ...tsData.classes.map((cls) => cls.name),
     ...pythonData.classes.map((cls) => cls.name),
   ]);
-  const sortedClassNames = Array.from(allClassNames).sort();
+
+  const sortedClassNames = Array.from(allClassNames).sort((a, b) => {
+    const tsClassA = tsClassesMap.get(a);
+    const pythonClassA = pythonClassesMap.get(a);
+    const tsClassB = tsClassesMap.get(b);
+    const pythonClassB = pythonClassesMap.get(b);
+
+    // Calculate total method count for each class
+    const methodCountA =
+      (tsClassA?.methods.filter((m) => m.name !== "constructor").length || 0) +
+      (pythonClassA?.methods.length || 0);
+    const methodCountB =
+      (tsClassB?.methods.filter((m) => m.name !== "constructor").length || 0) +
+      (pythonClassB?.methods.length || 0);
+
+    // Sort by method count (descending), then alphabetically
+    if (methodCountA !== methodCountB) {
+      return methodCountB - methodCountA;
+    }
+    return a.localeCompare(b);
+  });
 
   const filteredClassNames = sortedClassNames.filter((className) => {
     const tsClass = tsClassesMap.get(className);
@@ -204,6 +229,9 @@ export default function SDKComparison({
           file: cleanPath,
           line: startLine,
           language: sdkName === "ts" ? "typescript" : "python",
+          fullContent: content,
+          startLine: snippetStart + 1,
+          endLine: snippetEnd,
         })
       );
     } catch (error) {
@@ -224,7 +252,7 @@ export default function SDKComparison({
     endLine: number,
     sdkName: string,
     className: string,
-    methodName?: string
+    methodName: string
   ) => {
     const newExpanded = new Set(expandedCodeSnippets);
     const isExpanding = !newExpanded.has(key);
@@ -235,7 +263,7 @@ export default function SDKComparison({
         fetchCodeSnippet(filePath, startLine, endLine, sdkName, key);
       }
 
-      // Also expand the corresponding item on the other side
+      // Also expand the corresponding method on the other side
       const otherSdkName = sdkName === "ts" ? "python" : "ts";
       const otherClass =
         otherSdkName === "ts"
@@ -243,43 +271,24 @@ export default function SDKComparison({
           : pythonClassesMap.get(className);
 
       if (otherClass) {
-        let otherKey: string;
+        // Find the corresponding method
+        const normalizedMethodName =
+          otherSdkName === "python" ? toCamelCase(methodName) : methodName;
+        const otherMethod = otherClass.methods.find((m) =>
+          otherSdkName === "python"
+            ? toCamelCase(m.name) === normalizedMethodName
+            : m.name === normalizedMethodName
+        );
 
-        if (methodName) {
-          // For method-level snippets, find the corresponding method
-          const normalizedMethodName =
-            otherSdkName === "python" ? toCamelCase(methodName) : methodName;
-          const otherMethod = otherClass.methods.find((m) =>
-            otherSdkName === "python"
-              ? toCamelCase(m.name) === normalizedMethodName
-              : m.name === normalizedMethodName
-          );
-
-          if (otherMethod) {
-            otherKey = `${otherSdkName}-${className}-${otherMethod.name}`;
-            if (!newExpanded.has(otherKey)) {
-              newExpanded.add(otherKey);
-              if (!codeSnippets.has(otherKey)) {
-                fetchCodeSnippet(
-                  otherClass.file,
-                  otherMethod.startLine || otherMethod.line || 1,
-                  otherMethod.endLine || otherMethod.line || 1,
-                  otherSdkName,
-                  otherKey
-                );
-              }
-            }
-          }
-        } else {
-          // For class-level snippets, expand the corresponding class
-          otherKey = `${otherSdkName}-${className}-class`;
+        if (otherMethod) {
+          const otherKey = `${otherSdkName}-${className}-${otherMethod.name}`;
           if (!newExpanded.has(otherKey)) {
             newExpanded.add(otherKey);
             if (!codeSnippets.has(otherKey)) {
               fetchCodeSnippet(
                 otherClass.file,
-                otherClass.startLine || otherClass.line || 1,
-                otherClass.endLine || otherClass.line || 1,
+                otherMethod.startLine || otherMethod.line || 1,
+                otherMethod.endLine || otherMethod.line || 1,
                 otherSdkName,
                 otherKey
               );
@@ -290,7 +299,7 @@ export default function SDKComparison({
     } else {
       newExpanded.delete(key);
 
-      // Also collapse the corresponding item on the other side
+      // Also collapse the corresponding method on the other side
       const otherSdkName = sdkName === "ts" ? "python" : "ts";
       const otherClass =
         otherSdkName === "ts"
@@ -298,23 +307,17 @@ export default function SDKComparison({
           : pythonClassesMap.get(className);
 
       if (otherClass) {
-        if (methodName) {
-          // For method-level snippets, find and collapse the corresponding method
-          const normalizedMethodName =
-            otherSdkName === "python" ? toCamelCase(methodName) : methodName;
-          const otherMethod = otherClass.methods.find((m) =>
-            otherSdkName === "python"
-              ? toCamelCase(m.name) === normalizedMethodName
-              : m.name === normalizedMethodName
-          );
+        // Find and collapse the corresponding method
+        const normalizedMethodName =
+          otherSdkName === "python" ? toCamelCase(methodName) : methodName;
+        const otherMethod = otherClass.methods.find((m) =>
+          otherSdkName === "python"
+            ? toCamelCase(m.name) === normalizedMethodName
+            : m.name === normalizedMethodName
+        );
 
-          if (otherMethod) {
-            const otherKey = `${otherSdkName}-${className}-${otherMethod.name}`;
-            newExpanded.delete(otherKey);
-          }
-        } else {
-          // For class-level snippets, collapse the corresponding class
-          const otherKey = `${otherSdkName}-${className}-class`;
+        if (otherMethod) {
+          const otherKey = `${otherSdkName}-${className}-${otherMethod.name}`;
           newExpanded.delete(otherKey);
         }
       }
@@ -323,13 +326,78 @@ export default function SDKComparison({
     setExpandedCodeSnippets(newExpanded);
   };
 
+  const toggleSnippetExpansion = (key: string) => {
+    setExpandedSnippets((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(key)) {
+        newSet.delete(key);
+      } else {
+        newSet.add(key);
+      }
+      return newSet;
+    });
+  };
+
+  const getExpandedSnippetContent = (key: string) => {
+    const snippet = codeSnippets.get(key);
+    if (!snippet || !snippet.fullContent) return snippet?.content || "";
+
+    const lines = snippet.fullContent.split("\n");
+    const isExpanded = expandedSnippets.has(key);
+
+    if (isExpanded) {
+      // Show 5 lines above and below
+      const startLine = Math.max(0, (snippet.startLine || 1) - 6);
+      const endLine = Math.min(lines.length, (snippet.endLine || 1) + 5);
+      return lines.slice(startLine, endLine).join("\n");
+    } else {
+      // Show original snippet
+      return snippet.content;
+    }
+  };
+
   const getSortedMethods = (sdkClass: Class, sdkName: string): Method[] => {
     const methods =
       sdkName === "ts"
         ? sdkClass.methods.filter((m) => m.name !== "constructor")
         : sdkClass.methods;
 
-    return methods.sort((a, b) => a.name.localeCompare(b.name));
+    // Get the corresponding class from the other SDK
+    const otherSdkName = sdkName === "ts" ? "python" : "ts";
+    const otherClass =
+      otherSdkName === "ts"
+        ? tsClassesMap.get(sdkClass.name)
+        : pythonClassesMap.get(sdkClass.name);
+
+    if (!otherClass) {
+      // If no corresponding class, just sort alphabetically
+      return methods.sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    // Separate shared and non-shared methods
+    const sharedMethods: Method[] = [];
+    const nonSharedMethods: Method[] = [];
+
+    methods.forEach((method) => {
+      const normalizedMethodName =
+        sdkName === "python" ? toCamelCase(method.name) : method.name;
+      const otherMethodNames = otherClass.methods.map((m) =>
+        otherSdkName === "python" ? toCamelCase(m.name) : m.name
+      );
+
+      if (otherMethodNames.includes(normalizedMethodName)) {
+        sharedMethods.push(method);
+      } else {
+        nonSharedMethods.push(method);
+      }
+    });
+
+    // Sort each group alphabetically
+    sharedMethods.sort((a, b) => a.name.localeCompare(b.name));
+    nonSharedMethods.sort((a, b) => a.name.localeCompare(b.name));
+
+    // Return shared methods first, then non-shared methods
+    return [...sharedMethods, ...nonSharedMethods];
   };
 
   const getNormalizedMethodName = (
@@ -596,7 +664,7 @@ export default function SDKComparison({
         <div className="mb-2" key={`${sdkName}-${className}`}>
           <div
             className={`border-2 border-t-[#FFFFFF] border-l-[#FFFFFF] border-r-[#808080] border-b-[#808080] shadow-[inset_1px_1px_0px_#808080,inset_-1px_-1px_0px_#FFFFFF] ${
-              hoveredClass === className ? "bg-yellow-200" : ""
+              hoveredClass === className ? "bg-gray-200" : ""
             }`}
           >
             <div
@@ -655,27 +723,6 @@ export default function SDKComparison({
                     >
                       {isExpanded ? "Collapse" : "Expand"}
                     </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const key = `${sdkName}-${className}-class`;
-                        toggleCodeSnippet(
-                          key,
-                          sdkClass.file,
-                          sdkClass.startLine || sdkClass.line || 1,
-                          sdkClass.endLine || sdkClass.line || 1,
-                          sdkName,
-                          className
-                        );
-                      }}
-                      className="bg-[#C0C0C0] border border-t-[#FFFFFF] border-l-[#FFFFFF] border-r-[#808080] border-b-[#808080] px-2 py-1 text-xs text-black hover:bg-[#D0D0D0] active:border-t-[#808080] active:border-l-[#808080] active:border-r-[#FFFFFF] active:border-b-[#FFFFFF]"
-                      title="Show code snippet"
-                      style={{ fontFamily: "MS Sans Serif, sans-serif" }}
-                    >
-                      {loadingSnippets.has(`${sdkName}-${className}-class`)
-                        ? "..."
-                        : "View"}
-                    </button>
                   </div>
                   <span className="text-xs text-gray-500">
                     Line {sdkClass.startLine || sdkClass.line || 1}
@@ -699,35 +746,6 @@ export default function SDKComparison({
               </div>
             </div>
 
-            {expandedCodeSnippets.has(`${sdkName}-${className}-class`) && (
-              <div className="px-3 pb-3 border-t border-gray-100">
-                {loadingSnippets.has(`${sdkName}-${className}-class`) ? (
-                  <div className="text-sm text-gray-500 py-2">
-                    Loading code snippet...
-                  </div>
-                ) : codeSnippets.has(`${sdkName}-${className}-class`) ? (
-                  <div className="mt-2">
-                    <pre className="bg-black p-3 rounded text-xs overflow-x-auto border">
-                      <code
-                        className={`language-${
-                          codeSnippets.get(`${sdkName}-${className}-class`)
-                            ?.language
-                        }`}
-                        dangerouslySetInnerHTML={{
-                          __html: highlightCode(
-                            codeSnippets.get(`${sdkName}-${className}-class`)
-                              ?.content || "",
-                            codeSnippets.get(`${sdkName}-${className}-class`)
-                              ?.language || ""
-                          ),
-                        }}
-                      />
-                    </pre>
-                  </div>
-                ) : null}
-              </div>
-            )}
-
             {isExpanded && (
               <div className="px-2 pb-2 space-y-0.5">
                 {getSortedMethods(sdkClass, sdkName).map((method) => {
@@ -737,20 +755,34 @@ export default function SDKComparison({
                     method.name,
                     sdkName
                   );
-                  const isHovered = hoveredMethod === normalizedMethodName;
 
                   return (
                     <div key={method.name}>
                       <div
-                        className={`flex items-center space-x-2 text-sm px-2 py-1 rounded cursor-pointer transition-colors ${
-                          isHovered
-                            ? "bg-blue-100 text-blue-800"
-                            : "hover:bg-gray-50 text-gray-700"
-                        }`}
-                        onMouseEnter={() =>
-                          setHoveredMethod(normalizedMethodName)
-                        }
-                        onMouseLeave={() => setHoveredMethod(null)}
+                        className="method-item flex items-center space-x-2 text-sm px-2 py-1 rounded cursor-pointer text-gray-700"
+                        data-method-name={normalizedMethodName}
+                        onMouseEnter={(e) => {
+                          // Add highlighted class to all methods with the same name
+                          const methodName = e.currentTarget.dataset.methodName;
+                          document
+                            .querySelectorAll(
+                              `[data-method-name="${methodName}"]`
+                            )
+                            .forEach((el) => {
+                              el.classList.add("highlighted");
+                            });
+                        }}
+                        onMouseLeave={(e) => {
+                          // Remove highlighted class from all methods with the same name
+                          const methodName = e.currentTarget.dataset.methodName;
+                          document
+                            .querySelectorAll(
+                              `[data-method-name="${methodName}"]`
+                            )
+                            .forEach((el) => {
+                              el.classList.remove("highlighted");
+                            });
+                        }}
                       >
                         <div className="flex items-center space-x-1">
                           {renderMethodIcon(
@@ -837,9 +869,9 @@ export default function SDKComparison({
                                   }`}
                                   dangerouslySetInnerHTML={{
                                     __html: highlightCode(
-                                      codeSnippets.get(
+                                      getExpandedSnippetContent(
                                         `${sdkName}-${className}-${method.name}`
-                                      )?.content || "",
+                                      ),
                                       codeSnippets.get(
                                         `${sdkName}-${className}-${method.name}`
                                       )?.language || ""
@@ -847,6 +879,26 @@ export default function SDKComparison({
                                   }}
                                 />
                               </pre>
+                              <div className="flex justify-center mt-1">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleSnippetExpansion(
+                                      `${sdkName}-${className}-${method.name}`
+                                    );
+                                  }}
+                                  className="bg-[#C0C0C0] border border-t-[#FFFFFF] border-l-[#FFFFFF] border-r-[#808080] border-b-[#808080] px-2 py-1 text-xs text-black hover:bg-[#D0D0D0] active:border-t-[#808080] active:border-l-[#808080] active:border-r-[#FFFFFF] active:border-b-[#FFFFFF]"
+                                  style={{
+                                    fontFamily: "MS Sans Serif, sans-serif",
+                                  }}
+                                >
+                                  {expandedSnippets.has(
+                                    `${sdkName}-${className}-${method.name}`
+                                  )
+                                    ? "Show fewer lines"
+                                    : "Show more lines"}
+                                </button>
+                              </div>
                             </div>
                           ) : null}
                         </div>
@@ -883,7 +935,7 @@ export default function SDKComparison({
         <div className="mb-2" key={`${sdkName}-${className}`}>
           <div
             className={`border-2 border-t-[#FFFFFF] border-l-[#FFFFFF] border-r-[#808080] border-b-[#808080] shadow-[inset_1px_1px_0px_#808080,inset_-1px_-1px_0px_#FFFFFF] h-[60px] flex flex-col ${
-              hoveredClass === className ? "bg-yellow-200" : ""
+              hoveredClass === className ? "bg-gray-200" : ""
             }`}
           >
             <div
@@ -917,11 +969,26 @@ export default function SDKComparison({
       className="min-h-screen bg-[#C0C0C0] flex flex-col"
       style={{ fontFamily: "MS Sans Serif, sans-serif" }}
     >
+      <style>{`
+        .method-item {
+          transition: background-color 0.1s ease, color 0.1s ease;
+        }
+
+        .method-item:hover {
+          background-color: #e5e7eb !important;
+          color: #374151 !important;
+        }
+
+        .method-item.highlighted {
+          background-color: #e5e7eb !important;
+          color: #374151 !important;
+        }
+      `}</style>
       <div className="bg-[#C0C0C0] border-2 border-t-[#FFFFFF] border-l-[#FFFFFF] border-r-[#808080] border-b-[#808080] shadow-[inset_1px_1px_0px_#808080,inset_-1px_-1px_0px_#FFFFFF]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-center">
             <div className="flex-1 text-center">
-              <div className="relative h-[300px] sm:h-[400px] lg:h-[500px] w-full overflow-hidden">
+              <div className="relative h-[200px] sm:h-[250px] lg:h-[300px] w-full overflow-hidden">
                 <HyperText
                   className="text-2xl sm:text-3xl lg:text-4xl font-bold text-black"
                   style={{ fontFamily: "'Press Start 2P', monospace" }}
@@ -955,7 +1022,7 @@ export default function SDKComparison({
                     <Tilt>
                       <img
                         src="/typescript.png"
-                        className="w-40 h-40 sm:w-60 sm:h-60 lg:w-60 lg:h-60"
+                        className="w-32 h-32 sm:w-40 sm:h-40 lg:w-48 lg:h-48"
                       />
                     </Tilt>
                   </div>
@@ -971,7 +1038,7 @@ export default function SDKComparison({
                     <Tilt>
                       <img
                         src="/python.png"
-                        className="w-40 h-40 sm:w-60 sm:h-60 lg:w-70 lg:h-70"
+                        className="w-32 h-32 sm:w-40 sm:h-40 lg:w-48 lg:h-48"
                       />
                     </Tilt>
                   </div>
