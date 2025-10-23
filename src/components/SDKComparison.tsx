@@ -7,6 +7,7 @@ import { ComicText } from "@/components/ui/comic-text";
 import { RetroGrid } from "./ui/retro-grid";
 import { HyperText } from "./ui/hyper-text";
 import Tilt from "react-parallax-tilt";
+import { SparklesText } from "./ui/sparkles-text";
 
 interface Method {
   name: string;
@@ -1298,6 +1299,7 @@ export default function SDKComparison({
                 <ComicText fontSize={2} className="hidden sm:block">
                   probably not!
                 </ComicText>
+
                 <RetroGrid
                   lightLineColor="#000000"
                   darkLineColor="#000000"
@@ -1345,6 +1347,18 @@ export default function SDKComparison({
           </div>
         </div>
       </div>
+      <SparklesText className="text-center text-lg text-gray-500">
+        NO LLMs WERE <span className="text-red-500">HARMED</span> IN THE MAKING
+        OF{" "}
+        <a
+          href="https://github.com/SinaKhalili/arewedriftpyyet"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-500 hover:text-blue-700"
+        >
+          THIS SITE
+        </a>
+      </SparklesText>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
         <div className="relative mb-2">
           <input
